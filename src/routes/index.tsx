@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import heroImg from "@/assets/hero-coding.jpg";
 import workEs3efnny from "@/assets/work-es3efnny.png";
-import { useState } from "react";
-import { Code2, FileText, ShoppingBag, Layout, Facebook, MessageCircle, Sparkles, ArrowLeft, PenTool, ExternalLink, Construction, Send, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Code2, FileText, ShoppingBag, Layout, Facebook, MessageCircle, Sparkles, ArrowLeft, PenTool, ExternalLink, Construction, Send, CheckCircle2, Moon, Sun, Gift } from "lucide-react";
+
+const WHEEL_PRIZES = [5, 10, 15, 20, 25, 30];
+const WHEEL_COLORS = ["#f43f5e", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -16,15 +19,51 @@ const services = [
   { icon: PenTool, title: "تصميم الشعارات (لوجوهات)", desc: "هويات بصرية وشعارات مميزة تعكس شخصية مشروعك وتترك انطباعاً لا يُنسى." },
 ];
 
-const team = [
-  { name: "حمزة محمد حسام", role: "Front-End & UI Developer", initials: "ح م", tag: "تصميم وتطوير واجهات" },
-  { name: "محمد عبد العزيز محمود", role: "Full-Stack Developer", initials: "م ع", tag: "تطوير متاجر و حلول متكاملة" },
-];
 
 function Index() {
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dark, setDark] = useState(false);
+  const [wheelAngle, setWheelAngle] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [prize, setPrize] = useState<number | null>(null);
+  const [alreadySpun, setAlreadySpun] = useState(false);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
+    const prefers = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+    const isDark = saved ? saved === "dark" : !!prefers;
+    setDark(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+    if (typeof window !== "undefined" && localStorage.getItem("wheelPrize")) {
+      setAlreadySpun(true);
+      setPrize(Number(localStorage.getItem("wheelPrize")));
+    }
+  }, []);
+
+  const spinWheel = () => {
+    if (spinning || alreadySpun) return;
+    setSpinning(true);
+    const idx = Math.floor(Math.random() * WHEEL_PRIZES.length);
+    const segDeg = 360 / WHEEL_PRIZES.length;
+    const targetAngle = 360 * 6 + (360 - (idx * segDeg + segDeg / 2));
+    setWheelAngle(targetAngle);
+    setTimeout(() => {
+      const won = WHEEL_PRIZES[idx];
+      setPrize(won);
+      setSpinning(false);
+      setAlreadySpun(true);
+      localStorage.setItem("wheelPrize", String(won));
+    }, 4200);
+  };
+
+  const toggleTheme = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,6 +82,7 @@ function Index() {
           الإيميل: fd.get("email"),
           نوع_الطلب: fd.get("type"),
           التفاصيل: fd.get("details"),
+          خصم_عجلة_الحظ: prize ? `${prize}%` : "لم يلعب",
         }),
       });
       if (!res.ok) throw new Error("failed");
@@ -69,23 +109,50 @@ function Index() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#services" className="hover:text-foreground transition-colors">خدماتنا</a>
             <a href="#works" className="hover:text-foreground transition-colors">أعمالنا</a>
-            <a href="#team" className="hover:text-foreground transition-colors">الفريق</a>
+            
             <a href="#order" className="hover:text-foreground transition-colors">اطلب الآن</a>
             <a href="#contact" className="hover:text-foreground transition-colors">تواصل</a>
           </nav>
-          <a
-            href="https://www.facebook.com/share/1KQTn54X1M/"
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-accent text-accent-foreground text-sm font-bold shadow-accent hover:scale-105 transition-transform"
-          >
-            <Facebook className="w-4 h-4" /> صفحتنا
-          </a>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              aria-label="تبديل الوضع الليلي"
+              className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-accent/10 transition-colors"
+            >
+              {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <a
+              href="https://www.facebook.com/share/1KQTn54X1M/"
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-accent text-accent-foreground text-sm font-bold shadow-accent hover:scale-105 transition-transform"
+            >
+              <Facebook className="w-4 h-4" /> صفحتنا
+            </a>
+          </div>
         </div>
       </header>
 
       {/* HERO */}
-      <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-hero">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, white 1px, transparent 1px), radial-gradient(circle at 80% 70%, white 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+      <section
+        className="relative pt-32 pb-20 overflow-hidden bg-gradient-hero"
+        onMouseMove={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          const x = ((e.clientX - r.left) / r.width - 0.5) * 60;
+          const y = ((e.clientY - r.top) / r.height - 0.5) * 60;
+          e.currentTarget.style.setProperty("--dx", `${x}px`);
+          e.currentTarget.style.setProperty("--dy", `${y}px`);
+        }}
+      >
+        <div
+          className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 30%, white 1px, transparent 1px), radial-gradient(circle at 80% 70%, white 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+            transform: "translate3d(var(--dx, 0px), var(--dy, 0px), 0)",
+            transition: "transform 0.3s ease-out",
+          }}
+        />
         <div className="relative max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-primary-foreground animate-fade-up">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-semibold mb-6 backdrop-blur-sm">
@@ -134,7 +201,7 @@ function Index() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {services.map((s, i) => (
-              <div key={s.title} className="group relative bg-gradient-card p-8 rounded-2xl border border-border shadow-soft hover:shadow-glow transition-all duration-500 hover:-translate-y-2" style={{ animationDelay: `${i * 100}ms` }}>
+              <div key={s.title} className="group relative bg-slate-200 p-8 rounded-2xl border-slate-400 border text-slate-500 shadow-soft hover:shadow-glow transition-all duration-500 hover:-translate-y-2" style={{ animationDelay: `${i * 100}ms` }}>
                 <div className="w-14 h-14 rounded-2xl bg-gradient-hero flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <s.icon className="w-7 h-7 text-primary-foreground" />
                 </div>
@@ -200,38 +267,6 @@ function Index() {
         </div>
       </section>
 
-      {/* TEAM */}
-      <section id="team" className="py-24 px-6 bg-secondary/40">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mb-4">فريق العمل</span>
-            <h2 className="font-display text-4xl md:text-5xl font-black mb-4">العقول وراء <span className="text-gradient">Aswanny Programer</span></h2>
-            <p className="text-muted-foreground text-lg">شغف بالكود، حرص على التفاصيل، والتزام بمواعيد التسليم.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {team.map((m) => (
-              <div key={m.name} className="group bg-card p-8 rounded-3xl border border-border shadow-soft hover:shadow-glow transition-all duration-500 relative overflow-hidden">
-                <div className="absolute -top-10 -left-10 w-40 h-40 bg-gradient-accent rounded-full opacity-10 group-hover:opacity-20 transition-opacity" />
-                <div className="relative flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-hero flex items-center justify-center text-primary-foreground font-display font-black text-2xl shadow-glow shrink-0">
-                    {m.initials}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-display text-2xl font-black mb-1">{m.name}</h3>
-                    <p className="text-accent font-bold text-sm mb-3">{m.role}</p>
-                    <p className="text-muted-foreground text-sm">{m.tag}</p>
-                  </div>
-                </div>
-                <div className="relative mt-6 flex flex-wrap gap-2">
-                  {["React", "Next.js", "TailwindCSS", "Node.js", "UI/UX"].map((t) => (
-                    <span key={t} className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold">{t}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ORDER FORM */}
       <section id="order" className="py-24 px-6 bg-secondary/30">
@@ -296,6 +331,79 @@ function Index() {
                 />
               </div>
 
+              {/* WHEEL OF FORTUNE */}
+              <div className="rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5 p-5 md:p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gift className="w-5 h-5 text-accent" />
+                  <h4 className="font-display font-black text-lg">عجلة الحظ — اربح خصم من 5% إلى 30%</h4>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">لفّة واحدة فقط لكل عميل! الخصم اللي هتكسبه هيتبعت مع طلبك.</p>
+
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative w-56 h-56">
+                    {/* pointer */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10 w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-accent drop-shadow-md" />
+                    <svg
+                      viewBox="0 0 200 200"
+                      className="w-full h-full"
+                      style={{
+                        transform: `rotate(${wheelAngle}deg)`,
+                        transition: spinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.21, 1)" : "none",
+                      }}
+                    >
+                      {WHEEL_PRIZES.map((p, i) => {
+                        const seg = 360 / WHEEL_PRIZES.length;
+                        const start = i * seg - 90;
+                        const end = start + seg;
+                        const rad = (deg: number) => (deg * Math.PI) / 180;
+                        const x1 = 100 + 100 * Math.cos(rad(start));
+                        const y1 = 100 + 100 * Math.sin(rad(start));
+                        const x2 = 100 + 100 * Math.cos(rad(end));
+                        const y2 = 100 + 100 * Math.sin(rad(end));
+                        const mid = start + seg / 2;
+                        const tx = 100 + 62 * Math.cos(rad(mid));
+                        const ty = 100 + 62 * Math.sin(rad(mid));
+                        return (
+                          <g key={p}>
+                            <path
+                              d={`M100,100 L${x1},${y1} A100,100 0 0,1 ${x2},${y2} Z`}
+                              fill={WHEEL_COLORS[i]}
+                              stroke="#fff"
+                              strokeWidth="2"
+                            />
+                            <text
+                              x={tx} y={ty}
+                              fill="#fff" fontSize="18" fontWeight="900"
+                              textAnchor="middle" dominantBaseline="middle"
+                              transform={`rotate(${mid + 90}, ${tx}, ${ty})`}
+                            >
+                              {p}%
+                            </text>
+                          </g>
+                        );
+                      })}
+                      <circle cx="100" cy="100" r="14" fill="#fff" stroke="#0002" strokeWidth="2" />
+                    </svg>
+                  </div>
+
+                  {prize !== null ? (
+                    <div className="text-center">
+                      <p className="font-display font-black text-xl text-accent">🎉 مبروك! ربحت خصم {prize}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">سيُرفق الخصم تلقائياً مع طلبك.</p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={spinWheel}
+                      disabled={spinning || alreadySpun}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-accent text-accent-foreground font-bold shadow-accent hover:scale-105 transition-transform disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {spinning ? "جاري اللف…" : alreadySpun ? "تم الاستخدام" : "لف العجلة"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <button
@@ -345,7 +453,7 @@ function Index() {
             </div>
             <span className="font-display font-bold text-foreground">Aswanny Programer</span>
           </div>
-          <p>© {new Date().getFullYear()} جميع الحقوق محفوظة — حمزة محمد و محمد عبد العزيز</p>
+          <p>© {new Date().getFullYear()} Aswanny Programer — جميع الحقوق محفوظة</p>
         </div>
       </footer>
     </div>
